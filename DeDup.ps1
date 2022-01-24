@@ -5,13 +5,13 @@ function Deduplicate{
 	Get-ChildItem $FilePath -Recurse -Force | Sort-Object -Property FullName -Descending | ForEach-Object {
 		try {
 			$CurrentFile = $_.FullName
-			Write-Host "Processing File $_"
 			$CurrentHash = Get-FileHash $_.FullName -Algorithm MD5 | Select Hash
 			$CurrentHashValue = $CurrentHash.Hash
 			if ($CurrentHash.Hash){
 				if ($CurrentHashValue -ne "D41D8CD98F00B204E9800998ECF8427E"){
 					$FilePair = "$CurrentHashValue|$CurrentFile"
 					$FileTable += "$FilePair"
+					Write-Host "Processed File $_"
 				}
 			}
 			else{
@@ -20,6 +20,7 @@ function Deduplicate{
 		catch {}
 	}
 	foreach ($HashName in $FileTable){
+		$I=1
 		$Hash = $HashName.Split("|")[-0]
 		$File = $HashName.Split("|")[-1]
 		if ($HashTable.ContainsKey($Hash)){
@@ -44,8 +45,20 @@ function Deduplicate{
 		else{
 			Write-Host "$File Original File Discovered."
 			$HashTable[$Hash] = $File
+			$FileDestinationName = Split-Path $File -leaf
+			$FileDestinationPath = "$NewDir\$FileDestinationName"
 			if ($Action -eq "C"){
-				Copy-Item $File -Destination $NewDir
+				if (Test-Path -Path $FileDestinationPath -PathType Leaf){
+					$NewFileDestinationName = "$NewDir\$I-$FileDestinationName"
+					while (Test-Path -Path $NewFileDestinationName -PathType Leaf){
+						$I++
+						$NewFileDestinationName = "$NewDir\$I-$FileDestinationName"
+					}
+					Copy-Item $File -Destination $NewFileDestinationName
+				}
+				else{
+					Copy-Item $File -Destination $NewDir
+				}
 			}
 			else{
 			}

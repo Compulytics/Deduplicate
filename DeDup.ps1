@@ -143,7 +143,8 @@ if ($UserInput_FilePath){
 			else{
 				HELP
 			}
-		} else {
+		}
+		else {
 			Write-Host "Specified path does not exist."
 		}
 	}

@@ -32,15 +32,15 @@ function Deduplicate{
 			if ($Action -eq "D"){
 				Remove-Item -Path $File -Force -ErrorAction Stop
 				Write-Host "$File Deleted."
-				Add-Content Dedup_Report.csv "$WriteHash,$File,$Size,$Hash,Deleted"
+				Add-Content Dedup_Report.csv "`"$WriteHash`",`"$File`",$Size,$Hash,Deleted"
 			}
 			elseif ($Action -eq "L"){
 				Write-Host "$File Duplicate Logged."
-				Add-Content Dedup_Report.csv "$WriteHash,$File,$Size,$Hash,Logged"	
+				Add-Content Dedup_Report.csv "`"$WriteHash`",`"$File`",$Size,$Hash,Logged"	
 			}
 			elseif ($Action -eq "C"){
 				Write-Host "$File Duplicate Not Copied."
-				Add-Content Dedup_Report.csv "$WriteHash,$File,$Size,$Hash,Not Copied"
+				Add-Content Dedup_Report.csv "`"$WriteHash`",`"$File`",$Size,$Hash,Not Copied"
 			}
 			else{
 				Write-Host "ERROR: Invalid Action."

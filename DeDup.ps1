@@ -5,6 +5,15 @@ function Deduplicate{
 	$TotalDuplicateSize = 0
 	Get-ChildItem $FilePath -Recurse -Force | Sort-Object -Property FullName -Descending | ForEach-Object {
 		try {
+			if ($Action -eq "CD"){
+				$StrDir = [string]$_.Directory
+				if ($StrDir){
+					$NoQualStrDir = Split-Path -Path $StrDir -NoQualifier
+					if (!(Test-Path -Path $NewDir$NoQualStrDir)){
+						New-Item "$NewDir$NoQualStrDir" -ItemType Directory
+					}
+				}
+			}
 			$CurrentFile = $_.FullName
 			$CurrentLength = $_.Length
 			$CurrentHash = Get-FileHash $_.FullName -Algorithm MD5 | Select Hash
@@ -42,6 +51,10 @@ function Deduplicate{
 				Write-Host "$File Duplicate Not Copied."
 				Add-Content Dedup_Report.csv "`"$WriteHash`",`"$File`",$Size,$Hash,Not Copied"
 			}
+			elseif ($Action -eq "CD"){
+				Write-Host "$File Duplicate Not Copied."
+				Add-Content Dedup_Report.csv "`"$WriteHash`",`"$File`",$Size,$Hash,Not Copied"
+			}
 			else{
 				Write-Host "ERROR: Invalid Action."
 			}
@@ -64,7 +77,9 @@ function Deduplicate{
 					Copy-Item $File -Destination $NewDir
 				}
 			}
-			else{
+			elseif ($Action -eq "CD"){
+				$NoQualFileName = Split-Path $File -NoQualifier
+				Copy-Item $File -Destination $NewDir$NoQualFileName
 			}
 		}
 	}
@@ -97,19 +112,23 @@ function Deduplicate{
 		Write-Host " Total duplicate size: $TotalDuplicateSize TeraBytes"
 		Write-Host "*************************************************"
 	}
+	if ($Action -eq "CD"){
+		$EmptyDirs = gci $NewDir -directory -recurse | Where { (gci $_.fullName).count -eq 0 } | select -expandproperty FullName; $EmptyDirs | Foreach-Object { Remove-Item $_ -Recurse}		
+	}
 }
 function HELP{
 	Write-Host "USAGE:"
 	Write-Host "./THISPROGRAM FILE_PATH ACTION *DESTINATION_DIRECTORY*"
-	Write-Host "----------------------------------------------------------"
-	Write-Host "|--                      ACTIONS                       --|"
-	Write-Host "|--------------------------------------------------------|"
-	Write-Host "|                                                        |"
-	Write-Host "| Copy Originals to *DESTINATION_DIRECTORY*............C |"
-	Write-Host "| Delete doubles.......................................D |"
-	Write-Host "| Log doubles..........................................L |"
-	Write-Host "|                                                        |"
-	Write-Host "----------------------------------------------------------"
+	Write-Host "-----------------------------------------------------------------------------------"
+	Write-Host "|--                      ACTIONS                                                --|"
+	Write-Host "|---------------------------------------------------------------------------------|"
+	Write-Host "|                                                                                 |"
+	Write-Host "| Copy Originals to *DESTINATION_DIRECTORY*.....................................C |"
+	Write-Host "| Copy Originals to *DESTINATION_DIRECTORY* with Directory Structure...........CD |"
+	Write-Host "| Delete doubles................................................................D |"
+	Write-Host "| Log doubles...................................................................L |"
+	Write-Host "|                                                                                 |"
+	Write-Host "-----------------------------------------------------------------------------------"
 }
 $UserInput_FilePath=$args[0]
 $UserInput_Action=$args[1]
@@ -129,11 +148,29 @@ if ($UserInput_FilePath){
 			elseif ($UserInput_Action -eq "C"){
 				if ($UserInput_NewDir){
 					if (Test-Path -Path $UserInput_NewDir) {
-							Add-Content Dedup_Report.csv 'Original File,Duplicate File,Size,File Hash,Action'
-							Deduplicate $UserInput_FilePath $UserInput_Action $UserInput_NewDir
+						Add-Content Dedup_Report.csv 'Original File,Duplicate File,Size,File Hash,Action'
+						Deduplicate $UserInput_FilePath $UserInput_Action $UserInput_NewDir
 					}
 					else{
-						Write-Host "Destination folder does not exist."
+						New-Item "$UserInput_NewDir" -ItemType Directory
+						Add-Content Dedup_Report.csv 'Original File,Duplicate File,Size,File Hash,Action'
+						Deduplicate $UserInput_FilePath $UserInput_Action $UserInput_NewDir
+					}
+				}
+				else{
+					Write-Host "No destination folder specified."
+				}
+			}
+			elseif ($UserInput_Action -eq "CD"){
+				if ($UserInput_NewDir){
+					if (Test-Path -Path $UserInput_NewDir) {
+						Add-Content Dedup_Report.csv 'Original File,Duplicate File,Size,File Hash,Action'
+						Deduplicate $UserInput_FilePath $UserInput_Action $UserInput_NewDir
+					}
+					else{
+						New-Item "$UserInput_NewDir" -ItemType Directory
+						Add-Content Dedup_Report.csv 'Original File,Duplicate File,Size,File Hash,Action'
+						Deduplicate $UserInput_FilePath $UserInput_Action $UserInput_NewDir
 					}
 				}
 				else{

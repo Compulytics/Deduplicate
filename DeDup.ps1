@@ -4,31 +4,41 @@ function Deduplicate{
 	$HashTable = @{}
 	$TotalDuplicateSize = 0
 	Get-ChildItem $FilePath -Recurse -Force | Sort-Object -Property FullName -Descending | ForEach-Object {
-		try {
-			if ($Action -eq "CD"){
-				$StrDir = [string]$_.Directory
-				if ($StrDir){
-					$NoQualStrDir = Split-Path -Path $StrDir -NoQualifier
-					if (!(Test-Path -Path $NewDir$NoQualStrDir)){
-						New-Item "$NewDir$NoQualStrDir" -ItemType Directory
+		if ($Action -eq "CD"){
+			$StrDir = [string]$_.Directory
+			if ($StrDir){
+				$FullSource = (Resolve-Path $FilePath).path
+				$SubDirs = $StrDir.replace($FullSource,"")
+				if (!(Test-PAth -Path $NewDir$SubDirs)){
+					$FullPath = "$NewDir$SubDirs"
+					$DirectoryArray = $FullPath.split("\")
+					$DirectoryBuffer = ""
+					$DirectoryArray | ForEach-Object {
+						$DirectoryBuffer += "$_\"
+						if (!(Test-Path $DirectoryBuffer)){
+							New-Item $DirectoryBuffer -ItemType Directory | Out-Null
+							Write-Host "Created $DirectoryBuffer"
+						}
+						else{
+							Write-Host "$DirectoryBuffer Exists"
+						}
 					}
 				}
 			}
-			$CurrentFile = $_.FullName
-			$CurrentLength = $_.Length
-			$CurrentHash = Get-FileHash $_.FullName -Algorithm MD5 | Select Hash
-			$CurrentHashValue = $CurrentHash.Hash
-			if ($CurrentHash.Hash){
-				if ($CurrentHashValue -ne "D41D8CD98F00B204E9800998ECF8427E"){
-					$FilePair = "$CurrentHashValue|$CurrentFile|$CurrentLength"
-					$FileTable += "$FilePair"
+		}
+		$CurrentFile = $_.FullName
+		$CurrentLength = $_.Length
+		$CurrentHash = Get-FileHash $_.FullName -Algorithm MD5 | Select Hash
+		$CurrentHashValue = $CurrentHash.Hash
+		if ($CurrentHash.Hash){
+			if ($CurrentHashValue -ne "D41D8CD98F00B204E9800998ECF8427E"){
+				$FilePair = "$CurrentHashValue|$CurrentFile|$CurrentLength"
+				$FileTable += "$FilePair"
 					Write-Host "Processed File $_"
-				}
-			}
-			else{
 			}
 		}
-		catch {}
+		else{
+		}
 	}
 	foreach ($HashName in $FileTable){
 		$I=1
@@ -78,8 +88,9 @@ function Deduplicate{
 				}
 			}
 			elseif ($Action -eq "CD"){
-				$NoQualFileName = Split-Path $File -NoQualifier
-				Copy-Item $File -Destination $NewDir$NoQualFileName
+				$DSTFileName = $File.Replace($FullSource,"")
+				Copy-Item $File -Destination $NewDir$DSTFileName
+				Write-Host "Copied $File to $NewDir$DSTFileName"
 			}
 		}
 	}
@@ -152,7 +163,7 @@ if ($UserInput_FilePath){
 						Deduplicate $UserInput_FilePath $UserInput_Action $UserInput_NewDir
 					}
 					else{
-						New-Item "$UserInput_NewDir" -ItemType Directory
+						New-Item "$UserInput_NewDir" -ItemType Directory | Out-Null
 						Add-Content Dedup_Report.csv 'Original File,Duplicate File,Size,File Hash,Action'
 						Deduplicate $UserInput_FilePath $UserInput_Action $UserInput_NewDir
 					}
@@ -168,7 +179,7 @@ if ($UserInput_FilePath){
 						Deduplicate $UserInput_FilePath $UserInput_Action $UserInput_NewDir
 					}
 					else{
-						New-Item "$UserInput_NewDir" -ItemType Directory
+						New-Item "$UserInput_NewDir" -ItemType Directory | Out-Null
 						Add-Content Dedup_Report.csv 'Original File,Duplicate File,Size,File Hash,Action'
 						Deduplicate $UserInput_FilePath $UserInput_Action $UserInput_NewDir
 					}

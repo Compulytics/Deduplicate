@@ -131,7 +131,7 @@ function HELP{
 	Write-Host "USAGE:"
 	Write-Host "./THISPROGRAM FILE_PATH ACTION *DESTINATION_DIRECTORY*"
 	Write-Host "-----------------------------------------------------------------------------------"
-	Write-Host "|--                      ACTIONS                                                --|"
+	Write-Host "|--                                  ACTIONS                                    --|"
 	Write-Host "|---------------------------------------------------------------------------------|"
 	Write-Host "|                                                                                 |"
 	Write-Host "| Copy Originals to *DESTINATION_DIRECTORY*.....................................C |"

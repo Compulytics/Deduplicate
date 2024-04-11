@@ -2,63 +2,56 @@ $MySrcDir = "C:\Users"
 $MyDestDir = "C:\Music"
 $FileCount = 1
 $FileHashes = @{}
-$DouplicateSize = 0
-get-childitem -LiteralPath $MySrcDir -Recurse -Force | Foreach-Object {
-	if ($_.Directory -and $_.Name -match ".mp3" -and !($_.Name -match ".part")){
-		Write-Host -NoNewline "Processing"$_.Name"............"
-		$CurrentHash = Get-FileHash -LiteralPath $_.FullName -Algorithm MD5 | Select Hash
-		Write-Host $CurrentHash.Hash
-		if ($FileHashes.ContainsKey($CurrentHash.Hash)){
-			Write-Host $_.Name"is a douplicate of"$FileHashes[$CurrentHash.Hash]
-			$DouplicateSize += $_.Length
-		}
-		else{
-			$FileHashes[$CurrentHash.Hash] = $_.FullName
-			$DestFile = ""
-			$DestFile += $MyDestDir
-			$DestFile += "\"
-			$DestFile += $_.Name
-			While (Test-Path -LiteralPath $DestFile) {
-				$DestFile = ""
-				$DestFile += $MyDestDir
-				$DestFile += "\"
-				$DestFile += [string]$FileCount
-				$DestFile += "-"
-				$DestFile += $_.Name
-				$FileCount += 1
-			}
-			$FileCount = 1
-			Write-Host "Copying"$_.Name
-			Copy-Item -LiteralPath $_.FullName -Destination $DestFile
-		}
-	}
+$DuplicateSize = 0
+
+Get-ChildItem -LiteralPath $MySrcDir -Recurse -Force | ForEach-Object {
+    if ($_.Directory -and $_.Name -match ".mp3" -and !($_.Name -match ".part")) {
+        Write-Verbose "Processing $($_.Name)............"
+        $CurrentHash = Get-FileHash -LiteralPath $_.FullName -Algorithm MD5 | Select-Object -ExpandProperty Hash
+        Write-Verbose $CurrentHash
+        if ($FileHashes.ContainsKey($CurrentHash)) {
+            Write-Verbose "$($_.Name) is a duplicate of $($FileHashes[$CurrentHash])"
+            $DuplicateSize += $_.Length
+        }
+        else {
+            $FileHashes[$CurrentHash] = $_.FullName
+            $DestFile = Join-Path -Path $MyDestDir -ChildPath $_.Name
+            while (Test-Path -LiteralPath $DestFile) {
+                $DestFile = Join-Path -Path $MyDestDir -ChildPath "$FileCount-$($_.Name)"
+                $FileCount++
+            }
+            Write-Verbose "Copying $($_.Name)"
+            Copy-Item -LiteralPath $_.FullName -Destination $DestFile
+        }
+    }
 }
-if ($DouplicateSize -lt 1024){
-	Write-Host "*******************************************************"
-	Write-Host "Total duplicate size: $DouplicateSize Bytes"
-	Write-Host "*******************************************************"
+
+if ($DuplicateSize -lt 1024) {
+    Write-Output "*******************************************************"
+    Write-Output "Total duplicate size: $DuplicateSize Bytes"
+    Write-Output "*******************************************************"
 }
-elseif ($DouplicateSize -lt 1048576){
-	$DouplicateSize = [math]::Round($DouplicateSize/1024)
-	Write-Host "*******************************************************"
-	Write-Host "Total duplicate size: $DouplicateSize KiloBytes"
-	Write-Host "*******************************************************"
+elseif ($DuplicateSize -lt 1048576) {
+    $DuplicateSize = [math]::Round($DuplicateSize / 1024)
+    Write-Output "*******************************************************"
+    Write-Output "Total duplicate size: $DuplicateSize KiloBytes"
+    Write-Output "*******************************************************"
 }
-elseif ($DouplicateSize -lt 1073741824){
-	$DouplicateSize = [math]::Round($DouplicateSize/1048576)
-	Write-Host "*******************************************************"
-	Write-Host " Total duplicate size: $DouplicateSize MegaBytes"
-	Write-Host "*******************************************************"
+elseif ($DuplicateSize -lt 1073741824) {
+    $DuplicateSize = [math]::Round($DuplicateSize / 1048576)
+    Write-Output "*******************************************************"
+    Write-Output "Total duplicate size: $DuplicateSize MegaBytes"
+    Write-Output "*******************************************************"
 }
-elseif ($DouplicateSize -lt 137438953472){
-	$DouplicateSize = [math]::Round($DouplicateSize/1073741824)
-	Write-Host "*******************************************************"
-	Write-Host " Total duplicate size: $DouplicateSize GigaBytes"
-	Write-Host "*******************************************************"
+elseif ($DuplicateSize -lt 137438953472) {
+    $DuplicateSize = [math]::Round($DuplicateSize / 1073741824)
+    Write-Output "*******************************************************"
+    Write-Output "Total duplicate size: $DuplicateSize GigaBytes"
+    Write-Output "*******************************************************"
 }
-else{
-	$DouplicateSize = [math]::Round($DouplicateSize/137438953472)
-	Write-Host "*************************************************"
-	Write-Host " Total duplicate size: $DouplicateSize TeraBytes"
-	Write-Host "*************************************************"
+else {
+    $DuplicateSize = [math]::Round($DuplicateSize / 137438953472)
+    Write-Output "*************************************************"
+    Write-Output "Total duplicate size: $DuplicateSize TeraBytes"
+    Write-Output "*************************************************"
 }
